@@ -27,24 +27,24 @@ int main(void)
 {
 	bar->set_done_char("=");
 
-	std::vector<std::string> original;//�Է�
-	std::vector<std::string> answer_sheet;//����
+	std::vector<std::string> original;//입력
+	std::vector<std::string> answer_sheet;//답지
 
-	for (int i = 0; i < kMaxProduce; i++) {//workitem�� ������ ����
+	for (int i = 0; i < kMaxProduce; i++) {//workitem과 정답지 생성
 		original.push_back(generate_random_string());
 		answer_sheet.push_back(original[i]);
 		std::sort(answer_sheet[i].begin(), answer_sheet[i].end());
 	}
 
 	AsyncQueue<std::unique_ptr<WorkItem> > work_item_queue;
-	work_item_queue.setCapacity(kMaxQueueCapa);//producer�� consumer�� workitem���� queue ũ�� ����. 
+	work_item_queue.setCapacity(kMaxQueueCapa);//producer와 consumer간 workitem보관 queue크기 제한.
 
 	printf("start\n");
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
 	std::atomic_int consumed_count = 0;
 	std::atomic_int overflow_count = 0;
-	std::unique_ptr<WorkerThread> consumer_thread = std::make_unique<WorkerThread>();//workitem�� ó�� �ϴ� consumer thread
+	std::unique_ptr<WorkerThread> consumer_thread = std::make_unique<WorkerThread>();//workitem을 처리하는 consumer thread
 	if (consumer_thread) {
 		consumer_thread->setThreadBody(
 			"Consumer",
@@ -54,12 +54,11 @@ int main(void)
 				if (!workitem) {
 					continue;
 				}
-				user_consume(std::move(workitem));
+				user_consume(std::move(workitem));//<<- 사용자 구현 함수 2
 				consumed_count++;
-				//printf("��");
 			}});
 	}
-	std::unique_ptr<WorkerThread> producer_thread = std::make_unique<WorkerThread>();//workitem�� ���� �ϴ� producer thread
+	std::unique_ptr<WorkerThread> producer_thread = std::make_unique<WorkerThread>();//workitem을  producer thread
 	if (producer_thread) {
 		producer_thread->setThreadBody(
 			"Producer",
@@ -70,14 +69,12 @@ int main(void)
 				);
 				if (is_overflow) {
 					overflow_count++;
-					//printf("o");
 				}
-				//printf("��");
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			}});
 	}
 
-	user_init(kMaxProduce);
+	user_init(kMaxProduce); //<<- 사용자 구현 함수 1
 
 	if (consumer_thread) {
 		consumer_thread->start();
@@ -93,7 +90,7 @@ int main(void)
 		consumer_thread->stop();
 	}
 
-	user_deinit();
+	user_deinit(); //<<- 사용자 구현 함수 3
 
 	auto end_time = std::chrono::steady_clock::now();
 	std::chrono::milliseconds chrono_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
