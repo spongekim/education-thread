@@ -46,8 +46,12 @@ public:
 			return;
 		}
 		is_running = false;
-		if (read_thread->joinable()) {
-			read_thread->join();
+
+		auto thread = std::move(read_thread);
+		lock.unlock();
+
+		if (thread->joinable()) {
+			thread->join();
 		}
 	}
 
